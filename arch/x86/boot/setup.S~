@@ -1,0 +1,12 @@
+.code16
+.text
+
+.global _main
+
+_main:
+	movb $0xE, %ah
+	movb $'!', %al
+	int  $0x10
+_loop:
+	jmp _loop
+.org 2048

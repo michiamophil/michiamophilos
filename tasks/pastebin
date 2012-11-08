@@ -1,0 +1,44 @@
+FIRST TASK()
+	/*
+	//memcpyb(0x500000-0x1000, (unsigned int)cr-0x1000, 0x2000);
+	//memcpyb(cr, new_task, sizeof r);
+	unsigned int i;
+	cr =(unsigned int) r.esp - 0x134;
+	for (i=0; i<0x10000; i+=0x50)
+	cr[i] = 0x500000;
+	/*cr =(unsigned int) r.esp - 0x134;
+	cr->esp = 0x500000;
+	cr =(unsigned int) r.esp + 0x34;
+	cr->esp = 0x500000;
+	r.esp = 0x500000;
+	
+	//cr = 0x500000;
+	//reg_dump_confr(r, cr);
+	//debug_hex(cr->esp);
+	reg *cr = (unsigned int)r.esp - 0x24;
+	debug_hex(cr->esp)
+	debug_break();
+	new_task->state = RUNNING;
+	global_tab->running_indice = 0;
+	global_tab->indice = 1;
+	cur_task = new_task;*/
+	
+	
+	/*debug_hex(new_task->pageDir);
+	debug_break();
+	asm("mov %0, %%cr3":: "r"((unsigned int)new_task->pageDir));
+	debug_break();*/
+
+SCHEDULER
+// Salva il task precedente
+			memcpyb(cur_task, &r, sizeof r);
+			cur_task->state = READY;
+			reg_dump_confr(r, cur_task);
+			//debug_break();
+			
+			// Carica il nuovo task
+			reg *cr = (unsigned int)r.esp - 0x24;	// Inizio del costrutto reg originale dallo stack
+			memcpyb(cr, new_task, sizeof r);
+			
+			/*asm("mov %0, %%cr3":: "r"((unsigned int)new_task->pageDir));*/
+			

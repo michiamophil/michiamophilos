@@ -1,0 +1,176 @@
+/**
+ * \file driver/video/vesa.c
+ * \author Davide Gessa
+ * \date 12-27-09
+ */
+#include <driver/video/vesa.h>
+
+
+vesa_info_t *vci;
+vesa_mode_info_t *vmi;
+
+			
+/**
+ * Restituisce il puntatore alla struct mode info
+ */
+vesa_mode_info_t *vesa_get_mode_info()
+{
+	return vmi;
+}
+
+
+/**
+ * Disegna un pixel nello schermo
+ */
+void vesa_draw_pixel(uint32_t x, uint32_t y, uint32_t cl)
+{
+	register char *ptmp;
+	
+	if (x < 0 || x > vmi->width || y < 0 || y > vmi->height) return;
+	
+	x = (x * (vmi->bits_per_pixel >> 3));
+	y = (y * vmi->bytes_per_scan_line);
+	
+	char *asd = (char *)vmi->phys_base_ptr;
+	ptmp = &asd[x+y];
+	ptmp[0] = cl & 0xff;
+	ptmp[1] = (cl>>8) & 0xff;
+	ptmp[2] = (cl>>16) & 0xff;
+}
+
+
+
+/**
+ * Restituisce il colore di un pixel
+ */
+uint32_t vesa_get_pixel(uint32_t x, uint32_t y)
+{
+	register char *ptmp;
+	
+	if (x < 0 || x > vmi->width || y < 0 || y > vmi->height) return 0;
+	
+	x = (x * (vmi->bits_per_pixel >> 3));
+	y = (y * vmi->bytes_per_scan_line);
+	
+	char *asd = (char *)vmi->phys_base_ptr;
+	*ptmp = asd[x+y];
+	return *ptmp;	
+}
+
+
+/**
+ * Imposta una modalita' vesa
+ */
+uint32_t vesa_set_mode(uint32_t x, uint32_t y, uint32_t bit)
+{
+	
+}
+
+
+/**
+ * Inizializza il driver vesa
+ */
+uint32_t vesa_init(void *vbe_control_info, void *vbe_mode_info)
+{
+	vci = (vesa_info_t *) vbe_control_info;
+	vmi = (vesa_mode_info_t *) vbe_mode_info;
+}
+/**
+ * Disegna una linea
+ */
+void render_draw_line(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1, uint32_t col)
+{
+	uint32_t x = x0;
+	uint32_t y = y0;
+	
+	while(x < x1 || y < y1)
+	{
+		uint32_t c = (vesa_get_pixel(x0, y0) + col) / 2;
+		
+		render_draw_pixel(x, y, col);
+		
+		if(x < x1) x++;
+		if(y < y1) y++;
+	}
+}
+
+/**
+ * Disegna un rettangolo
+ */
+void render_draw_rect(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1, uint32_t col)
+{
+	render_draw_line(x0, y0, x0, y1, col);
+	render_draw_line(x0, y0, x1, y0, col);
+	
+	render_draw_line(x1, y0, x1, y1, col);
+	render_draw_line(x0, y1, x1, y1, col);	
+}
+char render_buffer[800*600*4];
+
+/**
+ * Disegna un rettangolo pieno
+ */
+void render_draw_rect_fill(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1, uint32_t fill)
+{
+	while(y0 <= y1)
+	{
+		render_draw_line(x0, y0, x1, y0, fill);	
+		y0++;
+	}
+}
+
+/**
+ * Renderizza una mappa di bit
+ */
+void render_bit_map(uint32_t *data, uint32_t x, uint32_t y, uint32_t sx, uint32_t sy)
+{	
+	gimp_image g;
+	
+	g.width = sx;
+	g.height = sy;
+	g.pixel_data = (char *) data;
+	g.bytes_per_pixel = 4;
+	
+	render_gimp_image(&g, x, y);
+}
+
+
+/**
+ * Renderizza un immagine esportata con gimp
+ */
+void render_gimp_image(gimp_image *gi, uint32_t x, uint32_t y)
+{
+	uint32_t i,j;
+	
+	for(i = 0; i < gi->height; i++)
+		for(j = 0; j < gi->width; j++)
+		{
+			uint32_t col = 
+				(gi->pixel_data[((i*4*gi->width)+j*4)+3] << 24) +
+				(gi->pixel_data[((i*4*gi->width)+j*4)+1] << 8) +
+				(gi->pixel_data[((i*4*gi->width)+j*4)+2] << 0)  + 
+				(gi->pixel_data[(i*4*gi->width)+j*4] << 16);
+			
+			if(col != 0)	
+				vesa_draw_pixel(x + j, y + i, col); 	
+		}	
+}
+
+
+/**
+ * Disegna un carattere sul buffer
+ */
+void render_draw_pixel(uint32_t x, uint32_t y, uint32_t cl)
+{
+	if (x<0 || x > vesa_get_mode_info()->width  || y<0 || y>vesa_get_mode_info()->height) return;
+	x = (x*(vesa_get_mode_info()->bits_per_pixel>>3));
+	y = (y*vesa_get_mode_info()->bytes_per_scan_line);
+	
+	//cl = (cl + render_get_pixel(x,y)) / 2;
+	
+	register char * cTemp;
+	cTemp = &render_buffer[x+y];
+	cTemp[0] = cl & 0xff;
+	cTemp[1] = (cl>>8) & 0xff;
+	cTemp[2] = (cl>>16) & 0xff;
+}

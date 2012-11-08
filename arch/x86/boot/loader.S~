@@ -1,0 +1,61 @@
+BOOTSEG=0x07C0
+INITSEG=0x9000
+SETUPSEG=0X9020
+SETUP_SECTS=0x4
+.code16
+.text
+
+.global _start
+
+_start:
+	movw $BOOTSEG, %ax	# 0x07C0 -> ax
+	movw %ax, %ds		# ds:si = dove prelevare i dati
+	movw $INITSEG, %ax	# 0x9000 -> ax
+	movw %ax, %es		# es:di = dove copiare i dati
+	movw $256, %cx		# copia per 256 word (512 byte)
+	xorw  %si, %si		# 0x0 -> si
+	xorw  %di, %di		# 0x0 -> di
+	cld
+	rep
+	movsw			# Copia ds:si++ -> es:di++
+	ljmp $INITSEG, $_main	# Salta a 0x9000:$_ciao
+		
+_main:
+	# Setta lo stak
+	xchg %bx, %bx
+	movw %ax, %ds		# 0x9000 -> ds Aggiorna il registro ds
+	movw %ax, %ss           # 0x9000 -> ss Va verso il basso e
+	movw $0x4000-12, %di	# 0x3FF4 -> di non deve andare sotto 0xA00
+	movw %di, %sp		# ss:sp = 0x9000:0x3FF4
+	
+	# Resetta il floppy0
+	xorb %ah, %ah		# 0x0 -> ah Servizio 0x0
+	xorb %dl, %dl		# 0x0 -> dl Drive 0
+        int $0x13		# Resetta il floppy 
+				# Curiosità: int 0x10 == .word 0x10CD, non 0xCD10 :)
+	
+	# Copia del kernel dal floppy
+	movb $0x02, %ah		# Servizio di copia
+	movb $0x00, %dh		# Drive 0
+	movb $0x00, %dl		# Testina di partenza 0
+	movb $0x00, %ch		# Traccia di partenza 0
+	movb $0x02, %cl		# Settore di partenza 2
+	movw $0x0200, %bx	# es:bx Destinazione dati
+	movb $SETUP_SECTS, %al	# Numero di settori da copiare
+	int  $0x13   		# Avvia la copia!        
+    	
+	# Jump a codice kernel
+	xchg %bx, %bx
+	call _motor_off		# Ma prima spegne il motore del floppy0
+	ljmp $SETUPSEG, $0
+        
+_motor_off:
+	movw $0x3F2, %dx	# 0x3F2 -> dx Porta floppy
+    	xorb    %al, %al	# 0x0 -> al
+    	outb    %al, %dx        # Scrive 0x0 sulla porta 0x3F2, che fa spegnere tutti i floppy
+_loop:	
+	jmp _loop
+.org 510
+
+boot_flag:	
+	.word 0xAA55

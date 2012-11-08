@@ -1,0 +1,5 @@
+#include <stdio.h>
+#include <string.h>
+
+typedef unsigned int guint;
+typedef unsigned char guint8;

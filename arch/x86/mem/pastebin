@@ -1,0 +1,14 @@
+
+//pageTable = ((pageDir[x] >> 12) * 0x1000);
+
+	video_scrivi_stringa("\nTest: ");
+		video_scrivi_hex(&pageTable[y]);
+
+	/*/ Se la pageTable non è alloccata
+	if (!pageTable) {
+		pageTable = get_page(1);
+		*pageDir = *pageDir | 3;
+		*pageTable = *pageTable | 3;
+		video_scrivi_stringa("\nNuova page: ");
+		video_scrivi_hex(pageTable);
+	}*/

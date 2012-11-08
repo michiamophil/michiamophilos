@@ -1,0 +1,17 @@
+default 0
+timeout 3
+#splashimage=(fd0)/boot/grub/splash.xpm.gz
+
+title           Michiamophil OS
+		root (cd)
+		kernel /kernel.bin
+		module /initrd
+		boot
+
+title           Michiamophil OS - video mode(test)
+		root (cd)
+		kernel /kernel.bin
+		module /initrd
+		#vbeset 0x115
+		vbeset 0x118
+		boot

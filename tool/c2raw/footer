@@ -1,0 +1,22 @@
+int main(int argc, char **argv)
+{
+	FILE *img;
+	int i;
+		
+	img = fopen(argv[1], "wb");
+		
+	printf("(Info Immagine) -> Width: %d, Height: %d, BpP: %d\n", gimp_image.width, gimp_image.height, gimp_image.bytes_per_pixel); 
+	fwrite(&gimp_image.width, 4, 1, img);
+	fwrite(&gimp_image.height, 4, 1, img);
+	fwrite(&gimp_image.bytes_per_pixel, 4, 1, img);
+	
+	char *data = (char *) gimp_image.pixel_data;
+	for(i = 0; i < sizeof(gimp_image); i++)
+	{
+		fwrite(data, 1, 1, img);
+		data++;
+	}
+	
+	fclose(img);
+	return 0;
+}
